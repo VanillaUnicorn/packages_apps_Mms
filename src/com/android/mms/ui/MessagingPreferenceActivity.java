@@ -28,6 +28,7 @@ import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Vibrator;
 import android.preference.CheckBoxPreference;
 import android.preference.ListPreference;
 import android.preference.Preference;
@@ -39,6 +40,7 @@ import android.preference.PreferenceScreen;
 import android.preference.RingtonePreference;
 import android.preference.Preference.OnPreferenceClickListener;
 import android.provider.SearchRecentSuggestions;
+import android.provider.Settings;
 import android.text.InputType;
 import android.text.TextUtils;
 import android.view.Menu;
@@ -227,6 +229,11 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         mMmsAutoRetrievialPref = (CheckBoxPreference) findPreference(AUTO_RETRIEVAL);
         mEnablePrivacyModePref = (CheckBoxPreference) findPreference(PRIVACY_MODE_ENABLED);
         mVibratePref = (CheckBoxPreference) findPreference(NOTIFICATION_VIBRATE);
+        Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+        if (mVibratePref != null && (vibrator == null || !vibrator.hasVibrator())) {
+            mNotificationPrefCategory.removePreference(mVibratePref);
+            mVibratePref = null;
+        }
         mRingtonePref = (RingtonePreference) findPreference(NOTIFICATION_RINGTONE);
 
         mManageTemplate = findPreference(MANAGE_TEMPLATES);
@@ -320,7 +327,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         // If needed, migrate vibration setting from the previous tri-state setting stored in
         // NOTIFICATION_VIBRATE_WHEN to the boolean setting stored in NOTIFICATION_VIBRATE.
         final SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-        if (sharedPreferences.contains(NOTIFICATION_VIBRATE_WHEN)) {
+        if (mVibratePref != null && sharedPreferences.contains(NOTIFICATION_VIBRATE_WHEN)) {
             String vibrateWhen = sharedPreferences.
                     getString(MessagingPreferenceActivity.NOTIFICATION_VIBRATE_WHEN, null);
             boolean vibrate = "always".equals(vibrateWhen);
@@ -681,6 +688,13 @@ public class MessagingPreferenceActivity extends PreferenceActivity
         boolean qmDarkThemeEnabled =
             prefs.getBoolean(MessagingPreferenceActivity.QM_DARK_THEME_ENABLED, false);
         return qmDarkThemeEnabled;
+    }
+
+    public static boolean getSmartCallEnabled(Context context) {
+        int enabled = Settings.AOKP.getInt(context.getContentResolver(),
+                          Settings.AOKP.SMART_PHONE_CALLER, 0);
+        boolean smartCallEnabled = (enabled != 0);
+        return smartCallEnabled;
     }
 
     private void registerListeners() {
